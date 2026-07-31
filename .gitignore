@@ -59,6 +59,9 @@ logs/
 *.sqlite
 
 # Node (if frontend)
-node_modules/
+node_modules/i
 npm-debug.log
 dist/
+
+# Local config with secrets - never commit this
+src/main/resources/application.yml
