@@ -63,5 +63,5 @@ node_modules/i
 npm-debug.log
 dist/
 
-# Local config with secrets - never commit this
+# Local config with secrets
 src/main/resources/application.yml
