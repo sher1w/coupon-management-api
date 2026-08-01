@@ -1,6 +1,6 @@
 # Coupon Management API
 
-A Spring Boot REST API for managing coupons with JWT authentication and race condition prevention.
+A Spring Boot REST API built as part of the Luarc Backend Engineer technical assessment. The project focuses on secure authentication, coupon management, and maintaining data consistency during concurrent requests.
 
 ## Quick Start
 
@@ -11,22 +11,25 @@ A Spring Boot REST API for managing coupons with JWT authentication and race con
 
 ### Setup
 
-1. **Create database:**
+1. Create the database:
 ```bash
 createdb coupon_db
 ```
 
-2. **Build & Run:**
+2. Copy `application-example.yml` to `application.yml` and update it with your PostgreSQL credentials and JWT secret.
+
+3. Build and run:
 ```bash
 mvn clean install
 mvn spring-boot:run
 ```
 
-API runs on: `http://localhost:8080/api`
+The API will run on `http://localhost:8080/api`
 
 ## Testing the API
 
-### 1. Register User
+### 1. Register a User
+
 ```bash
 curl -X POST http://localhost:8080/api/auth/register \
   -H "Content-Type: application/json" \
@@ -38,9 +41,10 @@ curl -X POST http://localhost:8080/api/auth/register \
   }'
 ```
 
-Copy the `token` from response.
+Save the `token` from the response.
 
-### 2. Create Coupon
+### 2. Create a Coupon
+
 ```bash
 curl -X POST http://localhost:8080/api/coupons/create \
   -H "Authorization: Bearer YOUR_TOKEN" \
@@ -54,67 +58,75 @@ curl -X POST http://localhost:8080/api/coupons/create \
   }'
 ```
 
-### 3. Claim Coupon
+### 3. Claim a Coupon
+
 ```bash
 curl -X POST http://localhost:8080/api/coupons/claim \
   -H "Authorization: Bearer YOUR_TOKEN" \
   -H "Content-Type: application/json" \
-  -d '{
-    "couponCode": "SUMMER2024"
-  }'
+  -d '{"couponCode": "SUMMER2024"}'
 ```
 
-Expected: `"success": true`
+Response: `"success": true`
 
-### 4. Claim Again (Should Fail)
+### 4. Try to Claim the Same Coupon Again
+
 Run the same command as step 3.
 
-Expected: `"success": false, "message": "You have already claimed this coupon"`
+Response: `"success": false, "message": "You have already claimed this coupon"`
 
-This proves **race condition prevention works**.
+This demonstrates the duplicate claim prevention working correctly.
 
-### 5. Get My Coupons
+### 5. View Your Claimed Coupons
+
 ```bash
 curl -X GET http://localhost:8080/api/coupons/my-coupons \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-## How Race Conditions Are Prevented
+## How Concurrency is Handled
 
-When multiple users claim the same coupon simultaneously, the system uses:
+The system prevents race conditions when multiple users claim the same coupon simultaneously:
 
-1. **Pessimistic Write Locking** - Database-level lock ensures only one user can claim at a time
-2. **SERIALIZABLE Isolation** - Transactions execute sequentially, not in parallel
-3. **Atomic Transactions** - All operations succeed or all rollback together
+1. **Pessimistic Write Locking** - The database locks the coupon row so only one user can access it at a time
+2. **SERIALIZABLE Isolation** - The claim operation uses the SERIALIZABLE isolation level to provide stronger consistency during concurrent transactions
+3. **Atomic Transactions** - All operations (check stock, increment counter, save claim) happen together or not at all
 
-Result: If 100 users claim 10 coupons, exactly 10 succeed. No lost updates, no data inconsistency.
+When multiple users attempt to claim a limited number of coupons simultaneously, only the available number of claims are processed successfully while the remaining requests receive an appropriate error response.
 
 ## API Endpoints
 
-- `POST /auth/register` - Register user
-- `POST /auth/login` - Login user
-- `POST /coupons/create` - Create coupon
-- `GET /coupons/available` - List available coupons
-- `POST /coupons/claim` - Claim coupon
-- `GET /coupons/my-coupons` - Get claimed coupons
-- `GET /coupons/my-claims` - Claim history
-- `PUT /coupons/{id}` - Update coupon
-- `GET /coupons/expiring-soon` - Coupons expiring in 7 days
+| Method | Endpoint | Purpose |
+|--------|----------|---------|
+| POST | `/auth/register` | Register new user |
+| POST | `/auth/login` | Login and get JWT token |
+| POST | `/coupons/create` | Create new coupon |
+| GET | `/coupons/available` | List all available coupons |
+| GET | `/coupons/code/{code}` | Get coupon by code |
+| POST | `/coupons/claim` | Claim a coupon |
+| GET | `/coupons/my-coupons` | Get your claimed coupons |
+| GET | `/coupons/my-claims` | Get your claim history |
+| PUT | `/coupons/{id}` | Update a coupon |
+| GET | `/coupons/expiring-soon` | Get coupons expiring soon |
 
 ## Tech Stack
 
+- Java 17
 - Spring Boot 3.1.5
-- Spring Security + JWT
+- Spring Security
+- JWT
 - PostgreSQL
 - JPA/Hibernate
 - Maven
 
-## Database Schema
+## Database Design
 
-**Users Table:** Stores user accounts with hashed passwords
+**users** - User accounts and authentication
+**coupons** - Coupon inventory with quantity and expiry tracking
+**coupon_claims** - Records of which user claimed which coupon
 
-**Coupons Table:** Stores coupons with quantity tracking and expiry dates
+Relationships between tables are managed using JPA entity mappings and foreign key constraints.
 
-**CouponClaims Table:** Tracks which user claimed which coupon with timestamp
+## Testing
 
-Proper indexes ensure efficient queries. Foreign keys maintain data integrity.
+This project was tested using Postman to verify authentication, coupon management, claiming, and duplicate claim prevention.
