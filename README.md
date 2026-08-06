@@ -1,6 +1,6 @@
 # Coupon Management API
 
-A Spring Boot REST API built as part of the Luarc Backend Engineer technical assessment. The project focuses on secure authentication, coupon management, and maintaining data consistency during concurrent requests.
+ The project focuses on secure authentication, coupon management, and maintaining data consistency during concurrent requests.
 
 ## Quick Start
 
